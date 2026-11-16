@@ -1,0 +1,56 @@
+name: Isolated container verification
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and verify isolated persistent container
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          docker build -t beeper-host-check .
+          docker volume create beeper-empty-profile
+          docker run -d --name beeper-host-check --memory=512m --cpus=0.5 --mount type=volume,source=beeper-empty-profile,target=/data beeper-host-check
+          for attempt in $(seq 1 90); do
+            if docker exec beeper-host-check python /app/probe.py >/dev/null 2>&1; then break; fi
+            if [ "$(docker inspect --format '{{.State.Running}}' beeper-host-check)" != true ]; then
+              docker logs beeper-host-check
+              exit 1
+            fi
+            sleep 2
+          done
+          docker exec beeper-host-check python /app/probe.py --isolated-test > evidence/first-start.json
+          docker exec beeper-host-check python -c "from pathlib import Path; Path('/data/persistence-canary').write_text('isolated-persistence-check-v1')"
+          docker exec beeper-host-check python -c "from pathlib import Path; print(Path('/sys/fs/cgroup/memory.peak').read_text())" > evidence/first-memory-peak-bytes.txt
+          docker inspect --format '{{json .NetworkSettings.Ports}}' beeper-host-check > evidence/published-ports.json
+          docker stop -t 15 beeper-host-check
+          docker inspect --format '{{.State.OOMKilled}}' beeper-host-check > evidence/first-oom-killed.txt
+          docker rm beeper-host-check
+          docker run -d --name beeper-host-check --memory=512m --cpus=0.5 --mount type=volume,source=beeper-empty-profile,target=/data beeper-host-check
+          for attempt in $(seq 1 60); do
+            if docker exec beeper-host-check python /app/probe.py >/dev/null 2>&1; then break; fi
+            sleep 2
+          done
+          docker exec beeper-host-check python /app/probe.py --isolated-test > evidence/replacement-start.json
+          docker exec beeper-host-check python -c "from pathlib import Path; assert Path('/data/persistence-canary').read_text() == 'isolated-persistence-check-v1'; assert len(list(Path('/data/profile').rglob('*.db'))) > 0; print('profile and canary persisted')" > evidence/persistence.txt
+          docker exec beeper-host-check python -c "import os; print('runtime uid:', os.stat('/proc/1').st_uid)" > evidence/runtime-owner.txt
+          docker stop -t 15 beeper-host-check
+          docker inspect --format '{{.State.OOMKilled}}' beeper-host-check > evidence/replacement-oom-killed.txt
+          test "$(cat evidence/first-oom-killed.txt)" = false
+          test "$(cat evidence/replacement-oom-killed.txt)" = false
+          test "$(cat evidence/published-ports.json)" = '{}'
+          cat evidence/first-start.json evidence/replacement-start.json evidence/persistence.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: isolated-container-evidence
+          path: evidence/
+          retention-days: 14

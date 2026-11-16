@@ -1,0 +1,12 @@
+{
+  "x64": {
+    "version": "4.3.308",
+    "url": "https://beeper-desktop.download.beeper.com/builds/beeper-server-4.3.308-linux-x64.tar.gz",
+    "sha512": "GGw7I7sPvhjQNGLLt3U+lRDg+9jk+eODYIzO6q65TcTbiMMefVT/V0CImuqODCRC0m8fRU9EgmFzPo2YAF4YRg=="
+  },
+  "arm64": {
+    "version": "4.3.308",
+    "url": "https://beeper-desktop.download.beeper.com/builds/beeper-server-4.3.308-linux-arm64.tar.gz",
+    "sha512": "81OfopcmRYq94UeMRMEqBMNtCBY1ma/t8j8PyS552ypyMKR6FcdFFtaq2ePNArNFqM4/+H80OElWzvTlejK/QA=="
+  }
+}
