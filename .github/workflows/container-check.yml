@@ -23,6 +23,8 @@ jobs:
             if docker exec beeper-host-check python /app/probe.py >/dev/null 2>&1; then break; fi
             if [ "$(docker inspect --format '{{.State.Running}}' beeper-host-check)" != true ]; then
               docker logs beeper-host-check
+              docker cp beeper-host-check:/data/logs/server.log evidence/empty-profile-runtime.log || true
+              cat evidence/empty-profile-runtime.log || true
               exit 1
             fi
             sleep 2
@@ -41,7 +43,7 @@ jobs:
           done
           docker exec beeper-host-check python /app/probe.py --isolated-test > evidence/replacement-start.json
           docker exec beeper-host-check python -c "from pathlib import Path; assert Path('/data/persistence-canary').read_text() == 'isolated-persistence-check-v1'; assert len(list(Path('/data/profile').rglob('*.db'))) > 0; print('profile and canary persisted')" > evidence/persistence.txt
-          docker exec beeper-host-check python -c "import os; print('runtime uid:', os.stat('/proc/1').st_uid)" > evidence/runtime-owner.txt
+          docker exec beeper-host-check python -c "import os; from pathlib import Path; owners=[p.stat().st_uid for p in Path('/proc').iterdir() if p.name.isdigit() and (p/'comm').exists() and (p/'comm').read_text().strip().startswith('beeper-server')]; assert owners and set(owners)=={10001}, owners; print('server runs as uid 10001')" > evidence/runtime-owner.txt
           docker stop -t 15 beeper-host-check
           docker inspect --format '{{.State.OOMKilled}}' beeper-host-check > evidence/replacement-oom-killed.txt
           test "$(cat evidence/first-oom-killed.txt)" = false
