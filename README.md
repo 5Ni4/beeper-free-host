@@ -19,11 +19,11 @@ The provider account's free-plan eligibility, allowed compute size, disk allowan
 and aggregate resource use must be checked in its dashboard before deployment.
 Do not enable a paid plan or enter a payment method as part of this setup.
 
-Northflank is the current candidate. Its pricing page advertises a free Sandbox
+Northflank was investigated as an alternative. Its pricing page advertises a free Sandbox
 with always-on workloads and up to $20/month of resources. Its billing guide also
 says payment details are required, so the actual account workflow must resolve
 that discrepancy. Persistent disk eligibility on the free account is not yet
-verified. No server has been provisioned yet.
+verified. This repository has not provisioned any provider account or server.
 
 ## Sign in after the host is verified
 
