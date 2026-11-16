@@ -23,6 +23,12 @@ def prepare_data():
         os.setuid(10001)
     os.umask(0o077)
     data.chmod(0o700)
+    os.environ.update({
+        'HOME': str(data),
+        'XDG_CACHE_HOME': str(data / 'cache'),
+        'XDG_CONFIG_HOME': str(data / 'config'),
+        'XDG_DATA_HOME': str(data / 'share'),
+    })
     return data
 
 
@@ -40,7 +46,9 @@ def install(data):
     executable = runtime / ('beeper-server-' + release['version'] + '-' + arch)
     stamp = executable.with_suffix('.sha512')
     if executable.exists() and stamp.exists():
-        if hashlib.file_digest(executable.open('rb'), 'sha512').hexdigest() == stamp.read_text().strip():
+        with executable.open('rb') as source:
+            verified = hashlib.file_digest(source, 'sha512').hexdigest() == stamp.read_text().strip()
+        if verified:
             return executable, release['version']
     with tempfile.TemporaryDirectory() as temp:
         archive = Path(temp) / 'server.tar.gz'

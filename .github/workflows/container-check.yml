@@ -2,6 +2,7 @@ name: Isolated container verification
 on:
   push:
     branches: [main]
+    paths: ['Dockerfile', '*.py', 'releases.json', '.github/workflows/container-check.yml']
   workflow_dispatch:
 permissions:
   contents: read
