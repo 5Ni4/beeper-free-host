@@ -36,6 +36,19 @@ The included CI uses a blank profile to verify a resource-limited Linux containe
 authentication enforcement, and profile persistence across container replacement.
 It does not establish real account sync, Telegram access, or Mac-off operation.
 
+## Verification status
+
+The latest executed check, [run 43869401539](https://github.com/5Ni4/beeper-free-host/actions/runs/43869401539),
+confirmed initial startup, startup after container replacement, persisted profile
+files, unauthenticated API/MCP rejection, and no public port. It then failed in
+the runtime-user assertion because the test searched by a process name which
+the server does not use. The assertion now checks the init process's child UID;
+that revised assertion has not been executed. The complete CI check remains
+unverified, and this package has not been deployed to a hosting provider.
+
+CI is manual-only to avoid generating repeated failure-notification emails during
+the parallel hosting work. There are no scheduled or push-triggered runs.
+
 ## Sources
 
 - https://github.com/beeper/cli/blob/main/packages/cli/docs/setup.md
